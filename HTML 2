@@ -1,0 +1,64 @@
+import re
+
+# Update this to your filename
+input_file = "HistoryGuru Archives (2018-25).txt"
+output_file = "index.html"
+
+# Regex to capture: Date, Time, Sender, Message
+msg_pattern = re.compile(r'^(\d{2}/\d{2}/\d{4}), (\d{2}:\d{2}) - (.*?): (.*)$')
+
+html_start = """
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="style.css">
+    <title>HistoryGuru Archive</title>
+</head>
+<body>
+    <div class="chat-area">
+        <div class="messages-container">
+"""
+
+html_end = """
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+with open(input_file, 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+
+content = []
+last_date = ""
+
+for line in lines:
+    match = msg_pattern.match(line.strip())
+    if match:
+        date, time, sender, text = match.groups()
+        
+        # Add a date badge if the date changed
+        if date != last_date:
+            content.append(f'<div class="date-badge">{date}</div>')
+            last_date = date
+        
+        # Identify "Vaibhav" as Sent (green) and others as Received (gray)
+        msg_type = "sent" if "Vaibhav" in sender else "received"
+        
+        msg_html = f'''
+        <div class="msg {msg_type}">
+            <span class="sender-name">{sender}</span>
+            <span class="msg-text">{text}</span>
+            <span class="msg-time">{time}</span>
+        </div>
+        '''
+        content.append(msg_html)
+    else:
+        # Handle system messages (group created, settings changed)
+        if " - " in line and ":" not in line[20:]:
+            content.append(f'<div class="system-msg">{line.strip()}</div>')
+
+with open(output_file, 'w', encoding='utf-8') as f:
+    f.write(html_start + "\n".join(content) + html_end)
+
+print("Archive Generated successfully!")
